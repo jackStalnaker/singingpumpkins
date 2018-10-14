@@ -10,7 +10,7 @@
 #include <avr/wdt.h>  // Raw AVR watchdog timer
 
 // Testing mode (treat servos as simple PWM)
-const bool TESTINGMODE = true;
+const bool TESTINGMODE = false;
 
 // Vixen header (identifies a light sequence)
 const int HEADER_LEN = 2;
@@ -57,13 +57,15 @@ const int isPWM[] = {true, true, true, true, true, true, false, false, false, fa
 // Servos
 const int SERVO_DELAY = 15; // delay after servo is activated (allow it to move)
 const int NUM_SERVOS = 3;
+const int NEUTRAL = 90;  // Neutral position
 Servo servos[NUM_SERVOS];
 
-// Min servo opening in degrees
-const int servoMin[] = {5, 0, 0};
+// Min servo opening in degrees from neutral position
+const int servoMin[] = {0, 0, 0};
 
-// Max servo opening in degrees
-const int servoMax[] = {60, 45, 45};
+// Max servo opening in degrees from neutral position
+const int servoMax[] = {35, 45, 45};
+//const int servoMax[] = {20, 15, 15};
 
 // Servo channel map
 const int NO_SERVO = -1;
@@ -71,6 +73,11 @@ const int servoNumber[] = {0, 1, 2, NO_SERVO, NO_SERVO, NO_SERVO, NO_SERVO, NO_S
                         NO_SERVO, NO_SERVO, NO_SERVO, NO_SERVO, NO_SERVO, NO_SERVO, NO_SERVO, NO_SERVO,
                         NO_SERVO, NO_SERVO
                        };
+                       
+// Servo direction
+const int CLOCKWISE = 1;
+const int COUNTERCLOCKWISE = -1;
+const int servoDirection[] = {COUNTERCLOCKWISE, CLOCKWISE, CLOCKWISE};
 
 // Serial
 const long COM_SPEED = 115200;
@@ -103,7 +110,7 @@ void setup()
   for (i = 0; i < NUM_ACTIVE_CHANNELS; i++) {
     digitalWrite(channels[i], LOW);
     if ((servoNumber[i] != NO_SERVO) && !TESTINGMODE) {
-      servos[servoNumber[i]].write(0);
+      servos[servoNumber[i]].write(NEUTRAL);
     }
   }
 
@@ -131,7 +138,9 @@ void loop()
 
       if ((servoNumber[i] != NO_SERVO) && !TESTINGMODE) {
         // SERVOS ------------------------------
-        servos[servoNumber[i]].write(map(incomingByte[i], 0, 255, servoMin[servoNumber[i]], servoMax[servoNumber[i]]));
+        int angle = map(incomingByte[i], 0, 255, servoMin[servoNumber[i]], servoMax[servoNumber[i]]);
+        angle *= servoDirection[servoNumber[i]];
+        servos[servoNumber[i]].write(NEUTRAL + angle);
         delay(SERVO_DELAY);
       } else if (isPWM[i]) {
         // PWM ---------------------------------
